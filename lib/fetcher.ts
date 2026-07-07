@@ -96,12 +96,13 @@ async function fetchWithRedirects(url: string, redirectCount = 0): Promise<Respo
       chunks.push(value);
     }
 
-    const decoder = new TextDecoder();
-    const body = chunks.map((chunk) => decoder.decode(chunk, { stream: true })).join("");
-    const finalDecoder = new TextDecoder();
-    const fullBody = chunks.length > 0
-      ? body + finalDecoder.decode(new Uint8Array(0))
-      : body;
+    const fullBuffer = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      fullBuffer.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const fullBody = new TextDecoder().decode(fullBuffer);
 
     return new Response(fullBody, {
       status: response.status,

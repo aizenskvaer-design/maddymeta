@@ -1,7 +1,25 @@
 {
   "name": "maddymeta",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "Analyze, preview & fix your meta tags. SEO scoring engine with live social previews for Google, Facebook, Twitter, and Telegram.",
+  "homepage": "https://github.com/Maddyrampant/maddymeta",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Maddyrampant/maddymeta.git"
+  },
+  "keywords": [
+    "seo",
+    "meta-tags",
+    "open-graph",
+    "twitter-cards",
+    "seo-analyzer",
+    "nextjs",
+    "web-tool",
+    "meta-tag-analyzer",
+    "seo-scoring",
+    "social-preview"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
