@@ -52,10 +52,12 @@
 
 **MaddyMeta** is a production-grade, open-source web application that analyzes any public URL's meta tags and provides:
 
-- **Full meta tag extraction** &mdash; title, description, Open Graph, Twitter Cards, canonical, robots, viewport, charset, lang, favicon
-- **SEO scoring** &mdash; 0–100 score with categorized findings (pass / warning / error) and actionable fix suggestions
-- **Live social previews** &mdash; see exactly how your link appears on Google Search, Facebook/LinkedIn (Open Graph), X/Twitter (Twitter Cards), and Telegram/WhatsApp
-- **Copyable fix snippets** &mdash; one-click copy for corrected `<meta>` code
+- **Full meta tag extraction** &mdash; title, description, Open Graph, Twitter Cards, JSON-LD, canonical, robots, viewport, charset, lang, favicon
+- **SEO scoring** &mdash; 0–100 score with 19 rules, categorized findings (pass / warning / error) and actionable fix snippets
+- **7 live social previews** &mdash; Google Search, Facebook/LinkedIn, X/Twitter, Telegram/WhatsApp, WhatsApp, Slack, and Discord
+- **URL comparison** &mdash; Side-by-side score, preview, and meta tag comparison across two URLs
+- **History & export** &mdash; Local analysis history, JSON download, and print/PDF reports
+- **Copyable fix snippets** &mdash; One-click copy for corrected `<meta>` code
 
 Built for developers, SEO specialists, and content creators who need instant, accurate meta tag analysis without signing up or paying.
 
@@ -65,14 +67,15 @@ Built for developers, SEO specialists, and content creators who need instant, ac
 
 ### Meta Tag Extraction
 | Category | Tags Extracted |
-|---|---|
+|---|---|---|
 | **Core** | `<title>`, `<meta name="description">`, `<link rel="canonical">`, `<meta name="robots">` |
 | **Technical** | `<meta name="viewport">`, `<meta charset>`, `<html lang>`, `<link rel="icon">` |
 | **Open Graph** | `og:title`, `og:description`, `og:image`, `og:url`, `og:type`, `og:site_name` |
 | **Twitter Cards** | `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image` |
+| **Structured Data** | JSON-LD blocks (`@context`, `@type` validation, syntax checking) |
 
 ### SEO Scoring Engine
-- 15 rules covering every essential meta tag
+- 19 rules covering every essential meta tag (including JSON-LD validation)
 - Weighted deductions from -2 to -15 based on SEO impact
 - Smart fallback detection (e.g., `twitter:image` uses `og:image` when missing)
 - Human-readable findings with severity badges and copyable fix snippets
@@ -82,6 +85,18 @@ Built for developers, SEO specialists, and content creators who need instant, ac
 - **Facebook / LinkedIn** &mdash; Large OG card with image, title, description, and domain
 - **X (Twitter)** &mdash; Summary card with large image, title, and description
 - **Telegram / WhatsApp** &mdash; Compact inline preview with thumbnail
+- **WhatsApp** &mdash; Inline preview with left thumbnail
+- **Slack** &mdash; Large card with branded left border accent
+- **Discord** &mdash; Compact embed with left thumbnail and URL
+
+### Analysis History & Export
+- **Local history** &mdash; Last 20 analyses saved in browser localStorage
+- **JSON export** &mdash; Download full analysis report as JSON
+- **Print / PDF** &mdash; Print-friendly report with all meta tags, JSON-LD, and findings
+
+### URL Comparison
+- **Side-by-side** &mdash; Compare scores, previews, meta tags, and fixes for two URLs
+- **Score difference** &mdash; Color-coded score indicator showing which URL performs better
 
 ### Security & Reliability
 - SSRF protection against internal network targeting
@@ -219,6 +234,15 @@ Analyzes a URL's meta tags and returns a complete SEO report.
     "charset": "utf-8",
     "lang": "en",
     "favicon": "https://example.com/favicon.ico",
+    "jsonLd": [
+      {
+        "raw": "{\"@context\":\"https://schema.org\",\"@type\":\"WebPage\"}",
+        "parsed": { "@context": "https://schema.org", "@type": "WebPage" },
+        "hasContext": true,
+        "hasType": true,
+        "typeName": "WebPage"
+      }
+    ],
     "openGraph": {
       "og:title": "Example Domain",
       "og:description": null,
@@ -300,6 +324,10 @@ curl -X POST https://maddymeta.vercel.app/api/analyze \
 | 13 | Missing `lang` attribute | -3 | warning | No `lang` or `xml:lang` on `<html>` |
 | 14 | Missing charset | -3 | warning | No charset meta tag |
 | 15 | Missing favicon | -2 | warning | No favicon link found |
+| 16 | Missing JSON-LD | -8 | warning | No JSON-LD structured data found |
+| 17 | Invalid JSON-LD syntax | -4 | warning | JSON-LD block contains unparseable JSON |
+| 18 | JSON-LD missing `@context` | -3 | warning | JSON-LD valid but no `@context` field |
+| 19 | JSON-LD missing `@type` | -3 | warning | JSON-LD valid but no `@type` field |
 
 **Score formula:** `MAX(0, MIN(100, 100 - SUM(deductions)))`
 
@@ -354,6 +382,66 @@ Zero configuration required. The repository includes a `vercel.json` with optima
 }
 ```
 
+### Docker (Self-Hosted Server)
+
+A production-ready `Dockerfile` and `docker-compose.yml` are included for containerized deployment on any server:
+
+```bash
+# Build and start with Docker Compose
+docker compose up -d
+
+# Or build manually
+docker build -t maddymeta .
+docker run -d -p 3000:3000 maddymeta
+```
+
+The image uses a multi-stage build (deps → builder → runner) running as a non-root `nextjs` user. It includes health checks and automatic restarts.
+
+### PM2 (Node.js Process Manager)
+
+For direct Node.js deployment with process management:
+
+```bash
+npm run build
+
+# Install PM2 globally
+npm install -g pm2
+
+# Start with PM2
+pm2 start ecosystem.config.js
+
+# Or manually
+PORT=3000 pm2 start node_modules/next/dist/bin/next --name maddymeta -- start
+
+# Save PM2 process list
+pm2 save
+pm2 startup
+```
+
+The repository includes `ecosystem.config.js` with log rotation, memory limits, and production defaults.
+
+### Nginx Reverse Proxy
+
+Example Nginx configuration for a production server:
+
+```nginx
+server {
+    listen 80;
+    server_name maddymeta.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 60s;
+    }
+}
+```
+
 ### Manual Deployment
 
 ```bash
@@ -369,16 +457,17 @@ The application runs on port 3000 by default. Set the `PORT` environment variabl
 
 ### Phase 2 (Coming Next)
 
-- [ ] **Image dimension validation** &mdash; Check that `og:image` meets minimum size requirements (1200×630)
-- [ ] **JSON-LD analysis** &mdash; Parse structured data markup and validate against schema.org
-- [ ] **URL comparison** &mdash; Compare meta tags between two URLs side by side
+- [x] **Image dimension validation** &mdash; Check that `og:image` meets minimum size requirements (1200×630)
+- [x] **JSON-LD / Schema.org validation** &mdash; Parse structured data, validate `@context` and `@type`
+- [x] **URL comparison** &mdash; Compare meta tags between two URLs side by side (`/compare`)
+- [x] **Export reports** &mdash; Download analysis results as JSON or print as PDF
+- [x] **Docker deployment** &mdash; Self-host with Docker, Docker Compose, or PM2
 
 ### Phase 3 (Future)
 
 - [ ] **Public REST API** &mdash; Rate-limited API with API keys for integration into CI/CD pipelines
 - [ ] **Batch analysis** &mdash; Upload a CSV of URLs for bulk meta tag auditing
 - [ ] **Lighthouse integration** &mdash; Pull in Core Web Vitals alongside meta tag analysis
-- [ ] **Export reports** &mdash; Download analysis results as PDF or CSV
 
 ---
 
