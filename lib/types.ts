@@ -1,3 +1,11 @@
+export interface JsonLdEntry {
+  raw: string;
+  parsed: Record<string, unknown> | null;
+  hasContext: boolean;
+  hasType: boolean;
+  typeName: string | null;
+}
+
 export interface MetaResult {
   title: { value: string; length: number } | null;
   description: { value: string; length: number } | null;
@@ -7,6 +15,7 @@ export interface MetaResult {
   charset: string | null;
   lang: string | null;
   favicon: string | null;
+  jsonLd: JsonLdEntry[];
   openGraph: {
     "og:title": string | null;
     "og:description": string | null;

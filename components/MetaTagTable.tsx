@@ -20,6 +20,7 @@ export default function MetaTagTable({ meta }: MetaTagTableProps) {
     { name: "Charset", value: meta.charset, status: meta.charset ? "present" : "missing" },
     { name: "Language (lang)", value: meta.lang, status: meta.lang ? "present" : "missing" },
     { name: "Favicon", value: meta.favicon, status: meta.favicon ? "present" : "missing" },
+    { name: "JSON-LD Blocks", value: meta.jsonLd ? `${meta.jsonLd.length} block(s)` : null, status: meta.jsonLd && meta.jsonLd.length > 0 ? "present" : "missing" },
     { name: "og:title", value: meta.openGraph["og:title"], status: meta.openGraph["og:title"] ? "present" : "missing" },
     { name: "og:description", value: meta.openGraph["og:description"], status: meta.openGraph["og:description"] ? "present" : "missing" },
     { name: "og:image", value: meta.openGraph["og:image"], status: meta.openGraph["og:image"] ? "present" : "missing" },

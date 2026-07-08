@@ -12,6 +12,7 @@ function makeMeta(overrides: Partial<MetaResult> = {}): MetaResult {
     charset: "UTF-8",
     lang: "en",
     favicon: "https://example.com/favicon.ico",
+    jsonLd: [{ raw: '{"@context":"https://schema.org","@type":"WebPage"}', parsed: { "@context": "https://schema.org", "@type": "WebPage" }, hasContext: true, hasType: true, typeName: "WebPage" }],
     openGraph: {
       "og:title": "OG Title",
       "og:description": "OG Description",
@@ -148,6 +149,7 @@ describe("scoreMeta", () => {
         charset: null,
         lang: null,
         favicon: null,
+        jsonLd: [],
         openGraph: {
           "og:title": null,
           "og:description": null,
@@ -164,7 +166,7 @@ describe("scoreMeta", () => {
         },
       })
     );
-    expect(score).toBe(13);
+    expect(score).toBe(5);
   });
 
   it("produces findings with fix suggestions", () => {
@@ -185,6 +187,7 @@ describe("scoreMeta", () => {
         charset: null,
         lang: null,
         favicon: null,
+        jsonLd: [],
         openGraph: {
           "og:title": null,
           "og:description": null,
@@ -204,6 +207,47 @@ describe("scoreMeta", () => {
     expect(score).toBeGreaterThanOrEqual(0);
     expect(score).toBeLessThan(30);
     expect(findings.length).toBeGreaterThan(10);
+  });
+
+  it("deducts for missing JSON-LD (warning -8)", () => {
+    const { score, findings } = scoreMeta(makeMeta({ jsonLd: [] }));
+    expect(score).toBe(92);
+    expect(findings).toContainEqual(expect.objectContaining({ id: "missing-jsonld" }));
+  });
+
+  it("does not deduct for valid JSON-LD", () => {
+    const { score, findings } = scoreMeta(makeMeta({
+      jsonLd: [{ raw: '{"@context":"https://schema.org","@type":"WebPage"}', parsed: { "@context": "https://schema.org", "@type": "WebPage" }, hasContext: true, hasType: true, typeName: "WebPage" }],
+    }));
+    expect(findings.find((f) => f.id === "missing-jsonld")).toBeUndefined();
+    expect(score).toBe(100);
+  });
+
+  it("deducts for invalid JSON-LD (warning -4)", () => {
+    const { score, findings } = scoreMeta(makeMeta({
+      jsonLd: [
+        { raw: "invalid json", parsed: null, hasContext: false, hasType: false, typeName: null },
+        { raw: '{"@context":"https://schema.org","@type":"WebPage"}', parsed: { "@context": "https://schema.org", "@type": "WebPage" }, hasContext: true, hasType: true, typeName: "WebPage" },
+      ],
+    }));
+    expect(findings).toContainEqual(expect.objectContaining({ id: "invalid-jsonld" }));
+    expect(score).toBe(96);
+  });
+
+  it("deducts for JSON-LD missing @context (warning -3)", () => {
+    const { score, findings } = scoreMeta(makeMeta({
+      jsonLd: [{ raw: '{"@type":"WebPage"}', parsed: { "@type": "WebPage" }, hasContext: false, hasType: true, typeName: "WebPage" }],
+    }));
+    expect(findings).toContainEqual(expect.objectContaining({ id: "missing-jsonld-context" }));
+    expect(score).toBe(97);
+  });
+
+  it("deducts for JSON-LD missing @type (warning -3)", () => {
+    const { score, findings } = scoreMeta(makeMeta({
+      jsonLd: [{ raw: '{"@context":"https://schema.org"}', parsed: { "@context": "https://schema.org" }, hasContext: true, hasType: false, typeName: null }],
+    }));
+    expect(findings).toContainEqual(expect.objectContaining({ id: "missing-jsonld-type" }));
+    expect(score).toBe(97);
   });
 
   it("does not deduct twitter:image when og:image exists as fallback", () => {

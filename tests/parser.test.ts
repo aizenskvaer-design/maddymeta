@@ -23,6 +23,7 @@ const COMPLETE_HTML = `<!DOCTYPE html>
   <meta name="twitter:title" content="Twitter Title">
   <meta name="twitter:description" content="Twitter description">
   <meta name="twitter:image" content="https://example.com/twitter.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Test"}</script>
 </head>
 <body></body>
 </html>`;
@@ -42,6 +43,8 @@ const MALFORMED_HTML = `<!DOCTYPE html>
   <title>Malformed Page</title>
   <meta name="viewport" content="width=device-width">
   <meta property="og:image" content="https://example.com/img.png">
+  <script type="application/ld+json">invalid-json</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article"}</script>
 </head>
 <body></body>
 </html>`;
@@ -91,6 +94,14 @@ describe("parseMetaTags", () => {
       expect(result.openGraph["og:url"]).toBe("https://example.com");
       expect(result.openGraph["og:type"]).toBe("website");
       expect(result.openGraph["og:site_name"]).toBe("TestSite");
+    });
+
+    it("extracts JSON-LD structured data", () => {
+      expect(result.jsonLd).toHaveLength(1);
+      expect(result.jsonLd[0].typeName).toBe("WebPage");
+      expect(result.jsonLd[0].hasContext).toBe(true);
+      expect(result.jsonLd[0].hasType).toBe(true);
+      expect(result.jsonLd[0].parsed).not.toBeNull();
     });
 
     it("extracts all Twitter Card tags", () => {
@@ -164,6 +175,14 @@ describe("parseMetaTags", () => {
 
     it("returns null for favicon since none exists", () => {
       expect(result.favicon).toBeNull();
+    });
+
+    it("extracts JSON-LD including invalid ones", () => {
+      expect(result.jsonLd).toHaveLength(2);
+      expect(result.jsonLd[0].parsed).toBeNull();
+      expect(result.jsonLd[0].typeName).toBeNull();
+      expect(result.jsonLd[1].parsed).not.toBeNull();
+      expect(result.jsonLd[1].typeName).toBe("Article");
     });
   });
 });

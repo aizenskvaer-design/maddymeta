@@ -53,6 +53,25 @@ export function parseMetaTags(html: string, url: string): MetaResult {
     "og:site_name": $('meta[property="og:site_name"]').attr("content") || $('meta[name="og:site_name"]').attr("content") || null,
   };
 
+  const jsonLd: { raw: string; parsed: Record<string, unknown> | null; hasContext: boolean; hasType: boolean; typeName: string | null }[] = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    const raw = $(el).text().trim();
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      const root = Array.isArray(parsed) ? parsed[0] : parsed;
+      jsonLd.push({
+        raw,
+        parsed: root as Record<string, unknown>,
+        hasContext: !!root?.["@context"],
+        hasType: !!root?.["@type"],
+        typeName: root?.["@type"] || null,
+      });
+    } catch {
+      jsonLd.push({ raw, parsed: null, hasContext: false, hasType: false, typeName: null });
+    }
+  });
+
   const twitter = {
     "twitter:card": $('meta[name="twitter:card"]').attr("content") || null,
     "twitter:title": $('meta[name="twitter:title"]').attr("content") || null,
@@ -69,6 +88,7 @@ export function parseMetaTags(html: string, url: string): MetaResult {
     charset,
     lang,
     favicon: faviconAbsolute,
+    jsonLd,
     openGraph,
     twitter,
   };

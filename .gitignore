@@ -28,6 +28,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# skills (local tooling, not part of project)
+/skills/
+
 # vercel
 .vercel
 

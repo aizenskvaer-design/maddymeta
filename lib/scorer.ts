@@ -156,6 +156,51 @@ const rules: Rule[] = [
     fix: () => '<meta charset="UTF-8" />',
   },
   {
+    id: "missing-jsonld",
+    severity: "warning",
+    deduction: 8,
+    test: (m) => !m.jsonLd || m.jsonLd.length === 0,
+    message: () => "No JSON-LD structured data found",
+    fix: () =>
+      '<script type="application/ld+json">\n{\n  "@context": "https://schema.org",\n  "@type": "WebPage",\n  "name": "Page Title",\n  "description": "Page description"\n}\n</script>',
+  },
+  {
+    id: "invalid-jsonld",
+    severity: "warning",
+    deduction: 4,
+    test: (m) => {
+      if (!m.jsonLd || m.jsonLd.length === 0) return false;
+      return m.jsonLd.some((e) => e.parsed === null);
+    },
+    message: (m) => {
+      const count = m.jsonLd.filter((e) => e.parsed === null).length;
+      return `${count} JSON-LD block(s) contain invalid JSON`;
+    },
+    fix: () => "Fix the JSON syntax in your <script type=\"application/ld+json\"> blocks",
+  },
+  {
+    id: "missing-jsonld-context",
+    severity: "warning",
+    deduction: 3,
+    test: (m) => {
+      if (!m.jsonLd || m.jsonLd.length === 0) return false;
+      return m.jsonLd.some((e) => e.parsed !== null && !e.hasContext);
+    },
+    message: () => "JSON-LD block missing @context",
+    fix: () => 'Add "@context": "https://schema.org" to your JSON-LD',
+  },
+  {
+    id: "missing-jsonld-type",
+    severity: "warning",
+    deduction: 3,
+    test: (m) => {
+      if (!m.jsonLd || m.jsonLd.length === 0) return false;
+      return m.jsonLd.some((e) => e.parsed !== null && !e.hasType);
+    },
+    message: () => "JSON-LD block missing @type",
+    fix: () => 'Add "@type": "WebPage" (or appropriate schema type) to your JSON-LD',
+  },
+  {
     id: "missing-favicon",
     severity: "warning",
     deduction: 2,
